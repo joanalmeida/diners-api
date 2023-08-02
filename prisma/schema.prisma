@@ -14,6 +14,7 @@ model Diner {
   id         String     @id @default(cuid())
   name       String
   categories Category[]
+  products   Product[]
 }
 
 model Category {
@@ -32,4 +33,6 @@ model Product {
   state       String
   discount    Int?
   categories  Category[]
+  diner       Diner      @relation(fields: [dinerId], references: [id])
+  dinerId     String
 }

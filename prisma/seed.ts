@@ -14,6 +14,7 @@ async function main() {
       description: 'La que le gusta al Taser',
       price: 350,
       state: 'Available',
+      dinerId: testDiner.id,
     },
   });
 
