@@ -1,6 +1,7 @@
 import { Product } from '../../domain/product';
+import { ProductQuery } from '../../domain/product.types';
 
 export interface IProductRepository {
-  getProducts(): Promise<Product[]>;
+  getProducts(search: ProductQuery): Promise<Product[]>;
   getById(productId: string): Promise<Product>;
 }

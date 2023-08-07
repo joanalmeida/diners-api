@@ -1,4 +1,5 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ProductQuery } from '../application/domain/product.types';
 import { GetProductByIdUseCase } from '../application/useCase/getProductById.usecase';
 import { GetProductsUseCase } from '../application/useCase/getProducts.usecase';
 
@@ -9,9 +10,17 @@ export class ProductController {
     private readonly getProductsUseCase: GetProductsUseCase,
   ) {}
 
+  //* -> like
+  //: -> equals
+  //< -> menor
+  //> -> mayor
+
+  //?name=pepe -> usar like
+  //?state=:Available&dinerId=:asd&name=*pepe
   @Get()
-  getProducts() {
-    return this.getProductsUseCase.execute();
+  getProducts(@Query() query: any) {
+    const search = this.buildSearch(query);
+    return this.getProductsUseCase.execute(search);
   }
 
   @Get('/:productId')
@@ -25,4 +34,30 @@ export class ProductController {
 
   //Un solo endpoint para multiples
   //UN endpoint para especifico
+
+  private buildSearch(query: any): ProductQuery {
+    let search: ProductQuery = {};
+    Object.keys(query).forEach((key) => {
+      let parsedValue: string | number;
+      let value = (query[key] as string).substring(1);
+
+      if (!isNaN(Number(value))) {
+        parsedValue = Number(value);
+      } else {
+        parsedValue = value;
+      }
+
+      search = {
+        ...search,
+        [key]: {
+          operator: query[key][0],
+          value: parsedValue,
+        },
+      };
+    });
+
+    console.log(search);
+
+    return search;
+  }
 }

@@ -1,7 +1,7 @@
 import { PrismaClient, Product as DBProduct } from '@prisma/client';
 import { IProductRepository } from './application/port/out/productRepository.interface';
 import { Product } from './application/domain/product';
-import { NotFoundError } from '@prisma/client/runtime/library';
+import { ProductQuery } from './application/domain/product.types';
 
 export class DBProductRepository implements IProductRepository {
   prisma: PrismaClient;
@@ -29,8 +29,31 @@ export class DBProductRepository implements IProductRepository {
     }
   }
 
-  async getProducts(): Promise<Product[]> {
-    const dbProducts: DBProduct[] = await this.prisma.product.findMany();
+  async getProducts(search: ProductQuery): Promise<Product[]> {
+    // const querySymbolsMap = {
+    //   ':': 'equals',
+    //   '*': 'like'
+    // };
+
+    // {
+    //   state: { ':': 'Available' },
+    //   dinerId: { ':': 'asd' },
+    //   name: { '*': 'pepe' }
+    // }
+
+    // { state: { operator: ':', value: 'Available'} }
+
+    // {
+    //   [attribute]: {
+    //     [operator]: [value]
+    //   }
+    // }
+    // console.log(search);
+    console.log(this.buildPrismaQuery(search));
+    const prismaQuery = this.buildPrismaQuery(search);
+    const dbProducts: DBProduct[] = await this.prisma.product.findMany({
+      where: prismaQuery,
+    });
     const products: Product[] = dbProducts.map(this.fromDBProduct);
 
     return products;
@@ -45,5 +68,33 @@ export class DBProductRepository implements IProductRepository {
       dbProduct.price,
       dbProduct.state,
     );
+  }
+
+  buildPrismaQuery(productQuery: ProductQuery): any {
+    let prismaQuery = {};
+    Object.keys(productQuery).forEach((key) => {
+      const operator = productQuery[key as keyof ProductQuery]?.operator;
+      if (operator) {
+        if (operator === ':') {
+          prismaQuery = {
+            ...prismaQuery,
+            [key]: productQuery[key as keyof ProductQuery]?.value,
+          };
+        } else if (operator === '*') {
+          prismaQuery = {
+            ...prismaQuery,
+            [key]: {
+              contains: productQuery[key as keyof ProductQuery]?.value,
+            },
+          };
+        } else {
+          throw new Error(
+            `Operator ${operator} not recognized for field ${key}.`,
+          );
+        }
+      }
+    });
+
+    return prismaQuery;
   }
 }
