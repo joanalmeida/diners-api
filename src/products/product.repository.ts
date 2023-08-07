@@ -30,26 +30,6 @@ export class DBProductRepository implements IProductRepository {
   }
 
   async getProducts(search: ProductQuery): Promise<Product[]> {
-    // const querySymbolsMap = {
-    //   ':': 'equals',
-    //   '*': 'like'
-    // };
-
-    // {
-    //   state: { ':': 'Available' },
-    //   dinerId: { ':': 'asd' },
-    //   name: { '*': 'pepe' }
-    // }
-
-    // { state: { operator: ':', value: 'Available'} }
-
-    // {
-    //   [attribute]: {
-    //     [operator]: [value]
-    //   }
-    // }
-    // console.log(search);
-    console.log(this.buildPrismaQuery(search));
     const prismaQuery = this.buildPrismaQuery(search);
     const dbProducts: DBProduct[] = await this.prisma.product.findMany({
       where: prismaQuery,
@@ -78,13 +58,17 @@ export class DBProductRepository implements IProductRepository {
         if (operator === ':') {
           prismaQuery = {
             ...prismaQuery,
-            [key]: productQuery[key as keyof ProductQuery]?.value,
+            [key]: {
+              equals: productQuery[key as keyof ProductQuery]?.value,
+              mode: 'insensitive',
+            }
           };
         } else if (operator === '*') {
           prismaQuery = {
             ...prismaQuery,
             [key]: {
               contains: productQuery[key as keyof ProductQuery]?.value,
+              mode: 'insensitive',
             },
           };
         } else {
