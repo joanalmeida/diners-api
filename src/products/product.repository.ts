@@ -1,13 +1,25 @@
 import { PrismaClient, Product as DBProduct } from '@prisma/client';
 import { IProductRepository } from './application/port/out/productRepository.interface';
 import { Product } from './application/domain/product';
-import { ProductQuery } from './application/domain/product.types';
+import { Operator, ProductQuery } from './application/domain/product.types';
 
 export class DBProductRepository implements IProductRepository {
   prisma: PrismaClient;
+  operatorMap: Map<
+    Operator,
+    (
+      key: string,
+      value: string | number | undefined,
+    ) => {
+      [x: string]: { [x: string]: string | number | undefined; mode: string };
+    }
+  >;
 
   constructor() {
     this.prisma = new PrismaClient();
+    this.operatorMap = new Map();
+    this.operatorMap.set(':', this.buildPrismaQueryObject('equals'));
+    this.operatorMap.set('*', this.buildPrismaQueryObject('contains'));
   }
 
   async getById(productId: string): Promise<Product> {
@@ -52,33 +64,44 @@ export class DBProductRepository implements IProductRepository {
 
   buildPrismaQuery(productQuery: ProductQuery): any {
     let prismaQuery = {};
+
     Object.keys(productQuery).forEach((key) => {
       const operator = productQuery[key as keyof ProductQuery]?.operator;
-      if (operator) {
-        if (operator === ':') {
-          prismaQuery = {
-            ...prismaQuery,
-            [key]: {
-              equals: productQuery[key as keyof ProductQuery]?.value,
-              mode: 'insensitive',
-            }
-          };
-        } else if (operator === '*') {
-          prismaQuery = {
-            ...prismaQuery,
-            [key]: {
-              contains: productQuery[key as keyof ProductQuery]?.value,
-              mode: 'insensitive',
-            },
-          };
-        } else {
-          throw new Error(
-            `Operator ${operator} not recognized for field ${key}.`,
-          );
-        }
+      if (!operator) {
+        throw new Error(
+          `Operator ${operator} not recognized for field ${key}.`,
+        );
       }
+
+      const operatorQueryFn = this.operatorMap.get(operator);
+      if (!operatorQueryFn) {
+        throw new Error(
+          `Operator ${operator} is not available on operator map.`,
+        );
+      }
+
+      const queryObject = operatorQueryFn(
+        key,
+        productQuery[key as keyof ProductQuery]?.value,
+      );
+
+      prismaQuery = {
+        ...prismaQuery,
+        ...queryObject,
+      };
     });
 
     return prismaQuery;
+  }
+
+  buildPrismaQueryObject(param: 'equals' | 'contains') {
+    return (key: string, value: string | number | undefined) => {
+      return {
+        [key]: {
+          mode: 'insensitive',
+          [param]: value,
+        },
+      };
+    };
   }
 }

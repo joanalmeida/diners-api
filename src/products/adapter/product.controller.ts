@@ -39,7 +39,7 @@ export class ProductController {
     let search: ProductQuery = {};
     Object.keys(query).forEach((key) => {
       let parsedValue: string | number;
-      let value = (query[key] as string).substring(1);
+      const value = (query[key] as string).substring(1);
 
       if (!isNaN(Number(value))) {
         parsedValue = Number(value);
