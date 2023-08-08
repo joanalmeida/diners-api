@@ -11,7 +11,7 @@ export class DBProductRepository implements IProductRepository {
       key: string,
       value: string | number | undefined,
     ) => {
-      [x: string]: { [x: string]: string | number | undefined; mode: string };
+      [x: string]: { [x: string]: string | number | undefined; mode?: string };
     }
   >;
 
@@ -96,12 +96,20 @@ export class DBProductRepository implements IProductRepository {
 
   buildPrismaQueryObject(param: 'equals' | 'contains') {
     return (key: string, value: string | number | undefined) => {
-      return {
+      const queryObject = {
         [key]: {
-          mode: 'insensitive',
           [param]: value,
         },
       };
+
+      if (typeof value === 'string') {
+        queryObject[key] = {
+          ...queryObject[key],
+          mode: 'insensitive',
+        };
+      }
+
+      return queryObject;
     };
   }
 }
