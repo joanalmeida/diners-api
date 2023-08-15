@@ -1,11 +1,13 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Query } from '@nestjs/common';
 import { ProductQuery } from '../application/domain/product.types';
+import { DeleteProductByIdUseCase } from '../application/useCase/deleteProductById.usecase';
 import { GetProductByIdUseCase } from '../application/useCase/getProductById.usecase';
 import { GetProductsUseCase } from '../application/useCase/getProducts.usecase';
 
 @Controller('/products')
 export class ProductController {
   constructor(
+    private readonly deleteProductByIdUseCase: DeleteProductByIdUseCase,
     private readonly getProductByIdUseCase: GetProductByIdUseCase,
     private readonly getProductsUseCase: GetProductsUseCase,
   ) {}
@@ -26,6 +28,12 @@ export class ProductController {
   @Get('/:productId')
   getById(@Param('productId') productId: string) {
     return this.getProductByIdUseCase.execute(productId);
+  }
+
+  @Delete('/:productId')
+  deleteById(@Param('productId') productId: string) {
+    this.deleteProductByIdUseCase.execute(productId);
+    return `Successfully deleted product with id ${productId}`;
   }
 
   //get generico que busca todos los del diner

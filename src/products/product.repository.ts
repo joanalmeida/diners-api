@@ -41,6 +41,7 @@ export class DBProductRepository implements IProductRepository {
     }
   }
 
+  //TODO: revisar si hay que wrappear entre try/catch para devolver array vacio
   async getProducts(search: ProductQuery): Promise<Product[]> {
     const prismaQuery = this.buildPrismaQuery(search);
     const dbProducts: DBProduct[] = await this.prisma.product.findMany({
@@ -49,6 +50,23 @@ export class DBProductRepository implements IProductRepository {
     const products: Product[] = dbProducts.map(this.fromDBProduct);
 
     return products;
+  }
+
+  async deleteById(productId: string): Promise<void> {
+    try {
+      await this.prisma.product.delete({
+        where: {
+          id: productId,
+        },
+      });
+    } catch (error) {
+      if ((error.code = 'P2025')) {
+        throw new Error(`Did not find product with id ${productId}`);
+      } else {
+        console.error(error);
+        throw new Error('Something reaaaally bad happened');
+      }
+    }
   }
 
   fromDBProduct(dbProduct: DBProduct): Product {
